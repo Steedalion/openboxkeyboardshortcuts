@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.CookieHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.*;
@@ -25,38 +26,51 @@ public class OpenboxKeyboardShortcuts {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws ParserConfigurationException {
-        
+
         Document doc;
-        doc = loadOpenboxFile("lxqt-rc.xml");
+        File inputXML = new File("lxqt-rc.xml"); inputXML.setReadOnly();
+        doc = loadOpenboxFile(inputXML);
         doc.getDocumentElement().normalize();
-        NodeList keybindList = doc.getElementsByTagName("keybind");
-        for (int i = 0; i < keybindList.getLength(); i++) {
-            Node keybind =keybindList.item(i);
-             if (keybind.getNodeType() == Node.ELEMENT_NODE) {
-            Element el = (Element) keybind;
-            String outputLine;
-            outputLine = el.getElementsByTagName("action").item(0).getAttributes().getNamedItem("name").getTextContent()+"\t\t"
-                    +el.getAttribute("key")
-                    +"\t";
-            System.out.println(outputLine);
+        PrintWriter writer = createOutputFile("keyboard_shorcuts.rst");
+
+        Node currentNode = doc.getDocumentElement().getElementsByTagName("keyboard").item(0).getFirstChild();
+        while (currentNode != null) {
+            //System.out.println("sss"+currentNode);
+
+//            
+            if ((currentNode.getNodeType() == Node.ELEMENT_NODE)) {
+                Element el = (Element) currentNode;
+                if (el.getTagName() == "keybind") {
+
+                    String outputLine;
+                    outputLine = el.getElementsByTagName("action").item(0).getAttributes().getNamedItem("name").getTextContent() + "\t"
+                            + el.getAttribute("key")
+                            + "\n";
+                    writer.write(outputLine);
+                } 
+
+//                
+            }else if (currentNode.getNodeType() == Node.COMMENT_NODE) {
+                    Comment comment = (Comment) currentNode;
+
+                    System.out.println("**"+comment.getTextContent()+"**");
+                    writer.write("**"+comment.getTextContent()+"**"+ "\n\n");
+                }
+            writer.flush();
+            currentNode = currentNode.getNextSibling();
         }
-            
-        }
-        
-        
+       writer.close();
        
-         
+
     }
-    
-    public static Document loadOpenboxFile(String fileName) 
-    {
-        File inputFile = new File(fileName);
-        inputFile.setReadOnly();
+
+    public static Document loadOpenboxFile(File inputFile) {
+        
         try {
             DocumentBuilderFactory dfact = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = dfact.newDocumentBuilder();
             Document doc = builder.parse(inputFile);
-            
+
             return doc;
         } catch (SAXException ex) {
             Logger.getLogger(OpenboxKeyboardShortcuts.class.getName()).log(Level.SEVERE, null, ex);
@@ -66,10 +80,10 @@ public class OpenboxKeyboardShortcuts {
             Logger.getLogger(OpenboxKeyboardShortcuts.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
-        
+
     }
-    public   static PrintWriter createOutputFile(String fileName)
-    {
+
+    public static PrintWriter createOutputFile(String fileName) {
         try {
             PrintWriter writer = new PrintWriter(fileName);
             return writer;
